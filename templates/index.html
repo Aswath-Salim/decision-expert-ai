@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Decision Expert AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="app">
+    <div class="header">
+        <h1>Decision Expert AI</h1>
+        <span class="tag">AI Consultant</span>
+    </div>
+
+    <div id="chat" class="chat">
+        <div class="bot message fade-in">
+            👋 Tell me the decision you’re thinking about.
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input id="input" placeholder="e.g. I want to build a house" />
+        <button onclick="send()">➤</button>
+    </div>
+</div>
+
+<script>
+function send() {
+    const input = document.getElementById("input");
+    const chat = document.getElementById("chat");
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    // User message
+    const userDiv = document.createElement("div");
+    userDiv.className = "user message fade-in";
+    userDiv.innerText = msg;
+    chat.appendChild(userDiv);
+    input.value = "";
+
+    // Typing indicator
+    const typing = document.createElement("div");
+    typing.className = "bot message typing";
+    typing.innerHTML = "<span></span><span></span><span></span>";
+    chat.appendChild(typing);
+    chat.scrollTop = chat.scrollHeight;
+
+    fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: msg})
+    })
+    .then(res => res.json())
+    .then(data => {
+        typing.remove();
+        const botDiv = document.createElement("div");
+        botDiv.className = "bot message fade-in";
+        botDiv.innerText = data.reply;
+        chat.appendChild(botDiv);
+        chat.scrollTop = chat.scrollHeight;
+    });
+}
+</script>
+
+</body>
+</html>

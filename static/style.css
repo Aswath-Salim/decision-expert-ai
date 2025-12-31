@@ -5,45 +5,41 @@
     box-sizing: border-box;
 }
 
-/* BACKGROUND */
+/* BACKGROUND CANVAS */
+#bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(circle at top, #020617, #000);
+}
+
+/* APP CONTAINER */
 body {
     height: 100vh;
-    background: radial-gradient(circle at top, #020617, #000);
     font-family: 'Segoe UI', system-ui, sans-serif;
-    color: #e5e7eb;
     display: flex;
     justify-content: center;
     align-items: center;
+    color: #e5e7eb;
 }
 
-/* GLOW EFFECT */
-.bg-glow {
-    position: fixed;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, #22d3ee55, transparent 70%);
-    filter: blur(80px);
-    top: -200px;
-    right: -200px;
-}
-
-/* APP CARD */
 .app {
     width: 420px;
     height: 680px;
-    background: rgba(2, 6, 23, 0.9);
-    border-radius: 20px;
-    box-shadow: 0 0 40px #22d3ee33;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(16px);
+    border-radius: 22px;
+    border: 1px solid #334155;
+    box-shadow: 0 0 50px #22d3ee33;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid #334155;
 }
 
 /* HEADER */
 .header {
-    padding: 18px;
     text-align: center;
+    padding: 20px;
     background: linear-gradient(135deg, #22d3ee, #38bdf8);
     color: #020617;
 }
@@ -53,7 +49,7 @@ body {
     font-weight: 800;
 }
 
-.tag {
+.header span {
     font-size: 12px;
     opacity: 0.8;
 }
@@ -79,7 +75,6 @@ body {
     padding: 12px 14px;
     margin-bottom: 12px;
     border-radius: 14px;
-    line-height: 1.4;
     font-size: 14px;
     white-space: pre-wrap;
 }
@@ -89,7 +84,6 @@ body {
     background: #020617;
     border: 1px solid #334155;
     color: #a7f3d0;
-    box-shadow: 0 0 10px #22d3ee22;
 }
 
 /* USER */
@@ -97,7 +91,7 @@ body {
     background: linear-gradient(135deg, #22d3ee, #38bdf8);
     color: #020617;
     margin-left: auto;
-    box-shadow: 0 0 12px #22d3ee55;
+    box-shadow: 0 0 12px #22d3ee77;
 }
 
 /* INPUT AREA */
@@ -112,9 +106,9 @@ body {
     flex: 1;
     padding: 12px;
     border-radius: 12px;
-    border: 1px solid #334155;
     background: #020617;
     color: #e5e7eb;
+    border: 1px solid #334155;
     outline: none;
 }
 
@@ -130,17 +124,17 @@ body {
     color: #020617;
     font-size: 18px;
     cursor: pointer;
-    box-shadow: 0 0 12px #22d3ee88;
+    box-shadow: 0 0 12px #22d3eeaa;
 }
 
-/* FADE IN */
+/* FADE ANIMATION */
 .fade-in {
     animation: fade 0.25s ease-in;
 }
 
 @keyframes fade {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {opacity: 0; transform: translateY(4px);}
+    to {opacity: 1; transform: translateY(0);}
 }
 
 /* TYPING INDICATOR */
@@ -154,18 +148,14 @@ body {
     height: 6px;
     background: #22d3ee;
     border-radius: 50%;
-    animation: blink 1.4s infinite both;
+    animation: blink 1.4s infinite;
 }
 
-.typing span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-.typing span:nth-child(3) {
-    animation-delay: 0.4s;
-}
+.typing span:nth-child(2) {animation-delay: .2s;}
+.typing span:nth-child(3) {animation-delay: .4s;}
 
 @keyframes blink {
-    0% { opacity: 0.2; }
-    20% { opacity: 1; }
-    100% { opacity: 0.2; }
+    0% {opacity: .2;}
+    20% {opacity: 1;}
+    100% {opacity: .2;}
 }

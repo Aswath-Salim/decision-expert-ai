@@ -1,46 +1,89 @@
 import os
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_tavily import TavilySearch  # ✅ correct class
 import warnings
-warnings.filterwarnings("ignore")
+from dotenv import load_dotenv
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_tavily import TavilySearch
+
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableWithMessageHistory
+from langchain_core.chat_history import InMemoryChatMessageHistory
+
+warnings.filterwarnings("ignore")
 load_dotenv()
 
-# Gemini LLM
+# --------------------------------------------------
+# LLM (Gemini)
+# --------------------------------------------------
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemini-.5-flash",
     temperature=0.4,
-    google_api_key=os.getenv("GOOGLE_API_KEY")
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
 )
 
-# Tavily Search (safe, stable)
+# --------------------------------------------------
+# Tool (Tavily)
+# --------------------------------------------------
 tavily = TavilySearch(k=4)
 
-# ----------------------------------
-# Generate 6 AI-driven questions
-# ----------------------------------
-def generate_questions(problem: str):
-    prompt = f"""
-You are a senior decision-making expert.
+# --------------------------------------------------
+# Prompt template
+# --------------------------------------------------
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a strict senior decision-making expert."),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{input}")
+])
 
-User decision:
+# --------------------------------------------------
+# Memory store (session-based)
+# --------------------------------------------------
+_store = {}
+
+def _get_session_history(session_id: str):
+    if session_id not in _store:
+        _store[session_id] = InMemoryChatMessageHistory()
+    return _store[session_id]
+
+# --------------------------------------------------
+# Runnable agent with memory
+# --------------------------------------------------
+agent = RunnableWithMessageHistory(
+    prompt | llm,
+    _get_session_history,
+    input_messages_key="input",
+    history_messages_key="history",
+)
+
+# ==================================================
+# PUBLIC FUNCTIONS (USED BY FLASK)
+# ==================================================
+
+def generate_questions(problem: str):
+    """
+    Generate EXACTLY 6 follow-up questions.
+    """
+    q_prompt = f"""
+Decision:
 "{problem}"
 
-Generate EXACTLY 6 follow-up questions to evaluate
-whether this decision is good or bad.
+Generate EXACTLY 6 follow-up questions.
 
 Rules:
-- Questions must be specific to the decision
-- Cover money, feasibility, risks, alternatives, timeline, backup
+- Specific to this decision
+- Cover money, risks, feasibility, alternatives, timeline, backup
 - Output ONLY numbered questions (1–6)
 """
 
-    response = llm.invoke(prompt)
-    text = response.content.strip()
+    result = agent.invoke(
+        {"input": q_prompt},
+        config={"configurable": {"session_id": "question_gen"}}
+    )
 
+    lines = result.content.split("\n")
     questions = []
-    for line in text.split("\n"):
+
+    for line in lines:
         line = line.strip()
         if line and line[0].isdigit():
             questions.append(line.split(".", 1)[-1].strip())
@@ -50,42 +93,39 @@ Rules:
 
     return questions[:6]
 
-# ----------------------------------
-# Final decision analysis (with Tavily)
-# ----------------------------------
-def final_analysis(problem: str, answers: list):
-    try:
-        search_results = tavily.invoke(problem)
-    except Exception as e:
-        search_results = f"No external data available ({e})"
 
-    prompt = f"""
-Decision Problem:
-{problem}
+def final_analysis(problem: str, answers: list):
+    """
+    Final strict decision evaluation.
+    """
+    answers_text = "\n".join(
+        f"{i+1}. {a}" for i, a in enumerate(answers)
+    )
+
+    final_prompt = f"""
+Decision:
+"{problem}"
 
 User Answers:
-{answers}
+{answers_text}
 
-Relevant Real-World Information:
-{search_results}
+Evaluate this decision STRICTLY.
 
-You are a STRICT decision evaluator.
-
-Step 1: Rate each factor from 0 to 10
+Step 1: Score each (0–10)
 - Financial feasibility
 - Risk level (10 = very risky)
 - Practicality
-- Backup/fallback strength
+- Backup strength
 - Timeline realism
 
-Step 2: Apply these rules STRICTLY:
-- If financial feasibility < 4 → Decision is NOT GOOD
-- If risk level > 7 AND no strong backup → NOT GOOD
-- If 2 or more factors score below 4 → NOT GOOD
-- If all factors ≥ 6 → GOOD
+Step 2: Rules
+- Financial < 4 → NOT GOOD
+- Risk > 7 and weak backup → NOT GOOD
+- 2+ scores below 4 → NOT GOOD
+- All ≥ 6 → GOOD
 - Else → CONDITIONALLY GOOD
 
-Step 3: Respond ONLY in this format:
+Respond ONLY in this format:
 
 Scores:
 - Financial feasibility: X/10
@@ -107,4 +147,9 @@ Expert Suggestions:
 - Bullet points
 """
 
-    return llm.invoke(prompt).content.strip()
+    result = agent.invoke(
+        {"input": final_prompt},
+        config={"configurable": {"session_id": "final_analysis"}}
+    )
+
+    return result.content
